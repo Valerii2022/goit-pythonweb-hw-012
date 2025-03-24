@@ -135,7 +135,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
+pgdata/
+migrations/
+*.pyd
+*.pyc
+*.pyo
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -172,3 +176,5 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+postgres-data/
