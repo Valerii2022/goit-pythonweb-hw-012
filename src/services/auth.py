@@ -12,17 +12,50 @@ from src.conf.config import settings
 from src.services.users import UserService
 
 class Hash:
+    """
+    Клас для роботи з хешуванням паролів, використовуючи bcrypt.
+    """
+
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
     def verify_password(self, plain_password, hashed_password):
+        """
+        Перевіряє, чи співпадають звичайний та хешований паролі.
+
+        Args:
+            plain_password (str): Звичайний пароль.
+            hashed_password (str): Хешований пароль.
+
+        Returns:
+            bool: True, якщо паролі співпадають, інакше False.
+        """
         return self.pwd_context.verify(plain_password, hashed_password)
 
     def get_password_hash(self, password: str):
+        """
+        Отримує хеш пароля.
+
+        Args:
+            password (str): Пароль, який потрібно захешувати.
+
+        Returns:
+            str: Хеш пароля.
+        """
         return self.pwd_context.hash(password)
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 async def create_access_token(data: dict, expires_delta: Optional[int] = None):
+    """
+    Створює новий JWT токен доступу.
+
+    Args:
+        data (dict): Дані для кодування в токені.
+        expires_delta (Optional[int]): Час в секундах до закінчення терміну дії токену.
+
+    Returns:
+        str: Створений JWT токен.
+    """
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.now(UTC) + timedelta(seconds=expires_delta)
@@ -37,6 +70,19 @@ async def create_access_token(data: dict, expires_delta: Optional[int] = None):
 async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):
+    """
+    Отримує поточного користувача за допомогою токену.
+
+    Args:
+        token (str): Токен користувача.
+        db (Session): Сесія бази даних.
+
+    Raises:
+        HTTPException: Якщо токен недійсний або користувач не знайдений.
+
+    Returns:
+        User: Об'єкт користувача.
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -59,6 +105,15 @@ async def get_current_user(
     return user
 
 def create_email_token(data: dict):
+    """
+    Створює токен для перевірки електронної пошти.
+
+    Args:
+        data (dict): Дані для кодування в токені.
+
+    Returns:
+        str: Створений JWT токен для перевірки електронної пошти.
+    """
     to_encode = data.copy()
     expire = datetime.now(UTC) + timedelta(days=7)
     to_encode.update({"iat": datetime.now(UTC), "exp": expire})
@@ -66,6 +121,18 @@ def create_email_token(data: dict):
     return token
 
 async def get_email_from_token(token: str):
+    """
+    Отримує електронну пошту з токену.
+
+    Args:
+        token (str): Токен для отримання електронної пошти.
+
+    Raises:
+        HTTPException: Якщо токен недійсний або не вдалось отримати електронну пошту.
+
+    Returns:
+        str: Електронна пошта користувача.
+    """
     try:
         payload = jwt.decode(
             token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]

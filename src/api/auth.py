@@ -7,6 +7,7 @@ from src.services.users import UserService
 from src.database.db import get_db
 from src.services.email import send_email
 
+# Ініціалізація роутера для автентифікації
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
@@ -16,6 +17,18 @@ async def register_user(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Реєстрація нового користувача.
+    
+    Args:
+        user_data (UserCreate): Дані користувача для реєстрації.
+        background_tasks (BackgroundTasks): Фонова задача для відправлення email.
+        request (Request): HTTP-запит.
+        db (Session): Сесія бази даних.
+
+    Returns:
+        User: Створений користувач.
+    """
     user_service = UserService(db)
 
     email_user = await user_service.get_user_by_email(user_data.email)
@@ -42,6 +55,16 @@ async def register_user(
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
 ):
+    """
+    Вхід користувача в систему.
+    
+    Args:
+        form_data (OAuth2PasswordRequestForm): Дані для входу.
+        db (Session): Сесія бази даних.
+
+    Returns:
+        dict: Токен доступу.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_username(form_data.username)
     if not user or not Hash().verify_password(form_data.password, user.hashed_password):
@@ -58,9 +81,18 @@ async def login_user(
     access_token = await create_access_token(data={"sub": user.username})
     return {"access_token": access_token, "token_type": "bearer"}
 
-
 @router.get("/confirmed_email/{token}")
 async def confirmed_email(token: str, db: Session = Depends(get_db)):
+    """
+    Підтвердження електронної пошти користувача.
+    
+    Args:
+        token (str): Токен підтвердження.
+        db (Session): Сесія бази даних.
+
+    Returns:
+        dict: Повідомлення про підтвердження пошти.
+    """
     email = await get_email_from_token(token)
     user_service = UserService(db)
     user = await user_service.get_user_by_email(email)
@@ -73,7 +105,6 @@ async def confirmed_email(token: str, db: Session = Depends(get_db)):
     await user_service.confirmed_email(email)
     return {"message": "Електронну пошту підтверджено"}
 
-
 @router.post("/request_email")
 async def request_email(
     body: RequestEmail,
@@ -81,6 +112,18 @@ async def request_email(
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Запит на повторне підтвердження електронної пошти.
+    
+    Args:
+        body (RequestEmail): Електронна адреса для підтвердження.
+        background_tasks (BackgroundTasks): Фонова задача для відправлення email.
+        request (Request): HTTP-запит.
+        db (Session): Сесія бази даних.
+
+    Returns:
+        dict: Повідомлення про статус запиту.
+    """
     user_service = UserService(db)
     user = await user_service.get_user_by_email(body.email)
 

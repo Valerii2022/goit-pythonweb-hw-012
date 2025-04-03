@@ -1,12 +1,15 @@
 from pydantic import ConfigDict, EmailStr
 from pydantic_settings import BaseSettings
-
 class Settings(BaseSettings):
+    # Налаштування бази даних
     DB_URL: str
+
+    # Налаштування JWT токена
     JWT_SECRET: str
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRATION_SECONDS: int = 3600
 
+    # Налаштування поштового сервера
     MAIL_USERNAME: EmailStr = "example@meta.ua"
     MAIL_PASSWORD: str = "secretPassword"
     MAIL_FROM: EmailStr = "example@meta.ua"
@@ -18,10 +21,12 @@ class Settings(BaseSettings):
     USE_CREDENTIALS: bool = True
     VALIDATE_CERTS: bool = True
 
+    # Налаштування Cloudinary
     CLD_NAME: str
     CLD_API_KEY: int = 326488457974591
     CLD_API_SECRET: str = "secret"
 
+    # Конфігурація Pydantic
     model_config = ConfigDict(
         extra="ignore", env_file=".env", env_file_encoding="utf-8", case_sensitive=True
     )

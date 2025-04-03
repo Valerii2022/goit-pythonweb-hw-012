@@ -8,6 +8,14 @@ router = APIRouter(tags=["utils"])
 
 @router.get("/healthchecker")
 async def healthchecker(db: AsyncSession = Depends(get_db)):
+    """
+    Перевіряє стан підключення до бази даних.
+    
+    Виконує тестовий SQL-запит, щоб переконатися, що база даних доступна.
+    
+    :param db: Сесія бази даних
+    :return: Повідомлення про успішне підключення або помилку
+    """
     try:
         result = await db.execute(text("SELECT 1"))
         result = result.scalar_one_or_none()
@@ -15,12 +23,12 @@ async def healthchecker(db: AsyncSession = Depends(get_db)):
         if result is None:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Database is not configured correctly",
+                detail="База даних налаштована некоректно",
             )
-        return {"message": "Welcome to FastAPI!"}
+        return {"message": "Ласкаво просимо до FastAPI!"}
     except Exception as e:
         print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error connecting to the database",
+            detail="Помилка підключення до бази даних",
         )

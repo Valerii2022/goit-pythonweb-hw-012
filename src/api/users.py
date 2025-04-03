@@ -15,10 +15,19 @@ router = APIRouter(prefix="/users", tags=["users"])
 limiter = Limiter(key_func=get_remote_address)
 
 @router.get(
-    "/me", response_model=User, description="No more than 5 requests per minute"
+    "/me", response_model=User, description="Не більше 5 запитів на хвилину"
 )
 @limiter.limit("5/minute")
-async def me(request: Request, user: User = Depends(get_current_user)):  
+async def me(request: Request, user: User = Depends(get_current_user)):
+    """
+    Отримати інформацію про поточного користувача.
+    
+    Обмеження: не більше 5 запитів на хвилину.
+    
+    :param request: Об'єкт запиту.
+    :param user: Поточний автентифікований користувач.
+    :return: Дані користувача.
+    """
     return user
 
 @router.patch("/avatar", response_model=User)
@@ -27,6 +36,14 @@ async def update_avatar_user(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Оновити аватар користувача.
+    
+    :param file: Файл зображення для аватара.
+    :param user: Поточний автентифікований користувач.
+    :param db: Сесія бази даних.
+    :return: Оновлений об'єкт користувача з новим аватаром.
+    """
     avatar_url = UploadFileService(
         settings.CLD_NAME, settings.CLD_API_KEY, settings.CLD_API_SECRET
     ).upload_file(file, user.username)
