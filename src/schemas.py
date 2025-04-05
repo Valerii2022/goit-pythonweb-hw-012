@@ -115,15 +115,7 @@ class RequestEmail(BaseModel):
     """
     email: EmailStr
 
-class PasswordResetRequest(BaseModel):
-    """
-    Модель для запиту на відновлення паролю.
-
-    Використовується для прийому запиту користувача на відновлення паролю через електронну пошту.
-    """
-    email: EmailStr
-
-class PasswordResetConfirm(BaseModel):
+class ChangePasswordRequest(BaseModel):
     """
     Модель для підтвердження відновлення паролю.
 
@@ -131,3 +123,4 @@ class PasswordResetConfirm(BaseModel):
     """
     token: str
     new_password: str
+    email: EmailStr

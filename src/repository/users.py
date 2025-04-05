@@ -1,6 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy.sql.sqltypes import DateTime
 from src.database.models import User
 from src.schemas import UserCreate
 
@@ -107,6 +107,48 @@ class UserRepository:
         """
         user = await self.get_user_by_email(email)
         user.avatar = url
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+    
+    async def add_reset_password_token_url(self, email: str, password_reset_token: str, password_reset_token_expiry: DateTime) -> User:
+        """
+        Додає token для скидання пароля.
+
+        Args:
+            email (str): Електронна пошта користувача, для якого оновлюється аватар.
+            password_reset_token(str): token для скидання пароля.
+            password_reset_token_expiry(str): Термін дії токена.
+
+        Returns:
+            User: Користувач з оновленим token для скидання пароля.
+        """
+        user = await self.get_user_by_email(email)
+        user.password_reset_token = password_reset_token
+        user.password_reset_token_expiry = password_reset_token_expiry
+        await self.db.commit()
+        await self.db.refresh(user)
+        return user
+    
+    async def reset_password(self, email: str, newPassword: str) -> User:
+        """
+        Скидання пароля користувача.
+
+        Ця функція знаходить користувача за електронною поштою, оновлює його пароль, 
+        зберігає зміни в базі даних і повертає оновленого користувача.
+
+        Args:
+            email (str): Електронна адреса користувача, чий пароль потрібно змінити.
+            newPassword (str): Новий пароль, який потрібно встановити для користувача.
+
+        Returns:
+            User: Оновлений об'єкт користувача з новим паролем.
+
+        Raises:
+            HTTPException: Якщо користувача з такою електронною поштою не знайдено, викидається помилка.
+        """
+        user = await self.get_user_by_email(email)
+        user.hashed_password = newPassword
         await self.db.commit()
         await self.db.refresh(user)
         return user

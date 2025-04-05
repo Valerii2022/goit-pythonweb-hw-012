@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from libgravatar import Gravatar
-
+from sqlalchemy.sql.sqltypes import DateTime
 from src.repository.users import UserRepository
 from src.schemas import UserCreate
 
@@ -103,4 +103,36 @@ class UserService:
             User: Користувач з оновленим URL аватара.
         """
         return await self.repository.update_avatar_url(email, url)
+    
+    async def add_reset_password_token_url(self, email: str, password_reset_token: str, password_reset_token_expiry: DateTime):
+        """
+        Додає token для скидання пароля.
+
+        Args:
+            email (str): Електронна пошта користувача, для якого оновлюється аватар.
+            password_reset_token(str): token для скидання пароля.
+            password_reset_token_expiry(str): Термін дії токена.
+
+        Returns:
+            User: Користувач з оновленим token для скидання пароля.
+        """
+        return await self.repository.add_reset_password_token_url(email, password_reset_token, password_reset_token_expiry)
+    
+    async def reset_password(self, email: str, newPassword: str):
+        """
+        Скидання пароля користувача.
+
+        Ця функція викликає метод репозиторію для оновлення пароля користувача в базі даних.
+
+        Args:
+            email (str): Електронна адреса користувача, чий пароль потрібно змінити.
+            newPassword (str): Новий пароль, який потрібно встановити для користувача.
+
+        Returns:
+            bool: Повертає результат виконання операції (True, якщо пароль було успішно змінено, False в іншому випадку).
+    
+        Raises:
+            SomeCustomException: Якщо виникає помилка під час зміни пароля в репозиторії (наприклад, користувач не знайдений).
+        """
+        return await self.repository.reset_password(email, newPassword)
 

@@ -59,6 +59,8 @@ class User(Base):
         avatar (str): URL або шлях до аватарки користувача.
         confirmed (bool): Статус підтвердження користувача.
         role (str): Роль користувача, яка може бути 'user' або 'admin'.
+        password_reset_token (str): Токен для скидання паролю.
+        password_reset_token_expiry (datetime): Час дії токену для скидання паролю.
     """
     __tablename__ = "users"
     
@@ -70,5 +72,7 @@ class User(Base):
     avatar = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
     role = Column(String(10), nullable=False, default="user")
+    password_reset_token = Column(String, nullable=True)
+    password_reset_token_expiry = Column(DateTime, nullable=True)
 
 

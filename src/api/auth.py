@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks, Request
 from sqlalchemy.orm import Session
+from datetime import datetime
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas import UserCreate, Token, User, RequestEmail
+from src.schemas import UserCreate, Token, User, RequestEmail, ChangePasswordRequest
 from src.services.auth import create_access_token, Hash, get_email_from_token
 from src.services.users import UserService
 from src.database.db import get_db
-from src.services.email import send_email
+from src.services.email import send_email, send_reset_password_email
 
 # Ініціалізація роутера для автентифікації
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -134,3 +135,75 @@ async def request_email(
             send_email, user.email, user.username, request.base_url
         )
     return {"message": "Перевірте свою електронну пошту для підтвердження"}
+
+@router.post("/password_reset_request")
+async def request_email(
+    body: RequestEmail,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Запит на скидання пароля для користувача.
+
+    Цей маршрут ініціює процес скидання пароля та надсилає електронний лист із посиланням для скидання пароля.
+    Якщо користувач з вказаною електронною поштою не знайдений, буде викинута помилка 404.
+
+    Args:
+        body (RequestEmail): Тіло запиту, що містить електронну пошту користувача.
+        background_tasks (BackgroundTasks): Фонова задача для відправлення email.
+        db (Session): Сесія бази даних для доступу до інформації про користувачів.
+
+    Returns:
+        dict: Повідомлення про успішну відправку запиту на скидання пароля.
+    
+    Raises:
+        HTTPException: Якщо користувача з такою електронною поштою не знайдено (404).
+    """
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Користувача з такою електронною поштою не знайдено.")
+    background_tasks.add_task(
+        send_reset_password_email, user.email, user.username, db
+    )
+
+    return {"message": "Перевірте свою електронну пошту для скидання пароля."}
+
+@router.post("/password_reset")
+async def request_email(
+    body: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Запит на зміну пароля користувача через токен скидання пароля.
+
+    Цей маршрут дозволяє користувачеві змінити пароль за допомогою токена скидання пароля. Якщо токен неправильний
+    або час його дії минув, викидається відповідна помилка. Пароль зберігається після хешування.
+
+    Args:
+        body (ChangePasswordRequest): Тіло запиту, що містить електронну пошту, новий пароль та токен скидання.
+        db (Session): Сесія бази даних для доступу до користувачів.
+
+    Returns:
+        dict: Повідомлення про успішну зміну пароля.
+    
+    Raises:
+        HTTPException: Якщо користувача з такою електронною поштою не знайдено (404).
+        HTTPException: Якщо токен скидання пароля неправильний (404).
+        HTTPException: Якщо токен скидання пароля прострочений (404).
+    """
+    user_service = UserService(db)
+    user = await user_service.get_user_by_email(body.email)
+    current_time = datetime.now()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Користувача з такою електронною поштою не знайдено.")
+    if user.password_reset_token != body.token:
+        raise HTTPException(status_code=404, detail="Невірний token скидання пароля.")
+    if user.password_reset_token_expiry < current_time:
+        raise HTTPException(status_code=404, detail="Час дії token вийшов.")
+    new_password = Hash().get_password_hash(body.new_password)
+    await user_service.reset_password(body.email, new_password)
+    
+    return {"message": "Пароль успішно змінено!"}
