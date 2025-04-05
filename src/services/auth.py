@@ -114,7 +114,7 @@ async def get_current_user(
             "avatar": user.avatar,
             "confirmed": user.confirmed,}
         r.set(token, json.dumps(user_data))
-        r.expire(token, 10)
+        r.expire(token, 3600)
         return user
     user_data = json.loads(cached_user)
     
