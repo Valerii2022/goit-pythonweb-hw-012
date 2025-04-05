@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, status, BackgroundTasks, 
 from sqlalchemy.orm import Session
 from datetime import datetime
 from fastapi.security import OAuth2PasswordRequestForm
-from src.schemas import UserCreate, Token, User, RequestEmail, ChangePasswordRequest
+from src.schemas import UserCreate, Token, UserBase, RequestEmail, ChangePasswordRequest
 from src.services.auth import create_access_token, Hash, get_email_from_token
 from src.services.users import UserService
 from src.database.db import get_db
@@ -11,7 +11,7 @@ from src.services.email import send_email, send_reset_password_email
 # Ініціалізація роутера для автентифікації
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-@router.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserBase, status_code=status.HTTP_201_CREATED)
 async def register_user(
     user_data: UserCreate,
     background_tasks: BackgroundTasks,

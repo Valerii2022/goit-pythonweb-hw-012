@@ -71,7 +71,7 @@ class ContactResponse(Contact):
         """
         orm_mode = True
 
-class User(BaseModel):
+class UserBase(BaseModel):
     """
     Модель користувача.
 

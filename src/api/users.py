@@ -5,7 +5,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database.db import get_db
-from src.schemas import User
+from src.schemas import UserBase
 from src.conf.config import settings
 from src.services.auth import get_current_user
 from src.services.users import UserService
@@ -15,10 +15,10 @@ router = APIRouter(prefix="/users", tags=["users"])
 limiter = Limiter(key_func=get_remote_address)
 
 @router.get(
-    "/me", response_model=User, description="Не більше 5 запитів на хвилину"
+    "/me", response_model=UserBase, description="Не більше 5 запитів на хвилину"
 )
 @limiter.limit("5/minute")
-async def me(request: Request, user: User = Depends(get_current_user)):
+async def me(request: Request, user: UserBase = Depends(get_current_user)):
     """
     Отримати інформацію про поточного користувача.
     
@@ -30,10 +30,10 @@ async def me(request: Request, user: User = Depends(get_current_user)):
     """
     return user
 
-@router.patch("/avatar", response_model=User)
+@router.patch("/avatar", response_model=UserBase)
 async def update_avatar_user(
     file: UploadFile = File(),
-    user: User = Depends(get_current_user),
+    user: UserBase = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
