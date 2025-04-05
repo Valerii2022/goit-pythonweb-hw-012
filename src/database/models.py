@@ -58,6 +58,7 @@ class User(Base):
         created_at (datetime): Дата та час створення користувача.
         avatar (str): URL або шлях до аватарки користувача.
         confirmed (bool): Статус підтвердження користувача.
+        role (str): Роль користувача, яка може бути 'user' або 'admin'.
     """
     __tablename__ = "users"
     
@@ -68,5 +69,6 @@ class User(Base):
     created_at = Column(DateTime, default=func.now())
     avatar = Column(String(255), nullable=True)
     confirmed = Column(Boolean, default=False)
+    role = Column(String(10), nullable=False, default="user")
 
 

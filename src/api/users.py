@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, UploadFile, File
+from fastapi import APIRouter, Depends, Request, UploadFile, File, HTTPException, status
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -43,7 +43,13 @@ async def update_avatar_user(
     :param user: Поточний автентифікований користувач.
     :param db: Сесія бази даних.
     :return: Оновлений об'єкт користувача з новим аватаром.
+    :raises HTTPException: Якщо користувач не є адміністратором, викидається помилка 403.
     """
+    if user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="У вас немає прав для зміни аватара.",
+        )
     avatar_url = UploadFileService(
         settings.CLD_NAME, settings.CLD_API_KEY, settings.CLD_API_SECRET
     ).upload_file(file, user.username)

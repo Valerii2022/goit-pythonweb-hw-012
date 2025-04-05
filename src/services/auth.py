@@ -1,3 +1,6 @@
+import redis
+import json
+
 from datetime import datetime, timedelta, UTC
 from typing import Optional
 
@@ -12,8 +15,6 @@ from src.database.models import User
 from src.conf.config import settings
 from src.services.users import UserService
 
-import redis
-import json
 
 r = redis.Redis(host="localhost", port=6379, password=None)
 
@@ -77,57 +78,69 @@ async def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ):
     """
-    Отримує поточного користувача за допомогою токену.
+    Отримує поточного користувача за допомогою токену, використовуючи кешування в Redis.
+
+    Функція перевіряє, чи є користувач у кеші Redis. Якщо дані відсутні, декодує токен, знаходить користувача в базі даних, зберігає його дані в Redis і повертає користувача. Якщо користувач уже є в кеші, дані повертаються з Redis.
 
     Args:
-        token (str): Токен користувача.
-        db (Session): Сесія бази даних.
+        token (str): Токен користувача, що містить інформацію для ідентифікації.
+        db (Session): Сесія бази даних для доступу до користувача.
 
     Raises:
         HTTPException: Якщо токен недійсний або користувач не знайдений.
 
     Returns:
-        User: Об'єкт користувача.
+        User: Об'єкт користувача, який містить дані користувача (ID, ім'я, електронна пошта, аватарка, статус підтвердження).
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Перевірка наявності користувача в кеші Redis
     cached_user = r.get(token)
     if cached_user is None:
         try:
+            # Якщо користувача немає в кеші, декодуємо токен
             payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
             username = payload["sub"]
             if username is None:
                 raise credentials_exception
-        except JWTError as e:
+        except JWTError:
             raise credentials_exception
+
+        # Отримання користувача з бази даних
         user_service = UserService(db)
         user = await user_service.get_user_by_username(username)
         if user is None:
-             raise credentials_exception
+            raise credentials_exception
+        
+        # Зберігання даних користувача в Redis
         user_data = {
             "id": user.id,
             "username": user.username,
             "email": user.email,
             "avatar": user.avatar,
-            "confirmed": user.confirmed,}
+            "confirmed": user.confirmed,
+            "role": user.role,
+        }
         r.set(token, json.dumps(user_data))
-        r.expire(token, 3600)
+        r.expire(token, 3600)  # Встановлюємо час життя кешу на 1 годину
         return user
+
+    # Якщо користувач знайдений в кеші, відновлюємо його дані
     user_data = json.loads(cached_user)
-    
     user = User(
         id=user_data["id"],
         username=user_data["username"],
         email=user_data["email"],
         avatar=user_data["avatar"],
-        confirmed=user_data["confirmed"]
+        confirmed=user_data["confirmed"],
+        role=user_data["role"]
     )
     
     return user
-
 
 def create_email_token(data: dict):
     """
