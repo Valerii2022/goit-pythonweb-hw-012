@@ -42,6 +42,7 @@ Pygments==2.19.1
 python-dotenv==1.0.1
 python-jose==3.4.0
 python-multipart==0.0.20
+redis==5.2.1
 requests==2.32.3
 roman-numerals-py==3.1.0
 rsa==4.9

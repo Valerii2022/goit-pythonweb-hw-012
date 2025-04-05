@@ -8,8 +8,14 @@ from sqlalchemy.orm import Session
 from jose import JWTError, jwt
 
 from src.database.db import get_db
+from src.database.models import User
 from src.conf.config import settings
 from src.services.users import UserService
+
+import redis
+import json
+
+r = redis.Redis(host="localhost", port=6379, password=None)
 
 class Hash:
     """
@@ -88,21 +94,40 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-
-    try:
-        payload = jwt.decode(
-            token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM]
-        )
-        username = payload["sub"]
-        if username is None:
+    cached_user = r.get(token)
+    if cached_user is None:
+        try:
+            payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+            username = payload["sub"]
+            if username is None:
+                raise credentials_exception
+        except JWTError as e:
             raise credentials_exception
-    except JWTError as e:
-        raise credentials_exception
-    user_service = UserService(db)
-    user = await user_service.get_user_by_username(username)
-    if user is None:
-        raise credentials_exception
+        user_service = UserService(db)
+        user = await user_service.get_user_by_username(username)
+        if user is None:
+             raise credentials_exception
+        user_data = {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "avatar": user.avatar,
+            "confirmed": user.confirmed,}
+        r.set(token, json.dumps(user_data))
+        r.expire(token, 10)
+        return user
+    user_data = json.loads(cached_user)
+    
+    user = User(
+        id=user_data["id"],
+        username=user_data["username"],
+        email=user_data["email"],
+        avatar=user_data["avatar"],
+        confirmed=user_data["confirmed"]
+    )
+    
     return user
+
 
 def create_email_token(data: dict):
     """
