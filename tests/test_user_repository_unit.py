@@ -10,17 +10,26 @@ from datetime import datetime
 
 @pytest.fixture
 def mock_session():
+    """
+    Фікстура для створення імітованої асинхронної сесії SQLAlchemy.
+    """
     mock_session = AsyncMock(spec=AsyncSession)
     return mock_session
 
 
 @pytest.fixture
 def user_repo(mock_session):
+    """
+    Фікстура для створення екземпляра UserRepository з імітованою сесією.
+    """
     return UserRepository(mock_session)
 
 
 @pytest.mark.asyncio
 async def test_get_user_by_id(user_repo, mock_session):
+    """
+    Перевіряє правильність отримання користувача за ID.
+    """
     mock_user = User(
         id=1,
         username="some_user",
@@ -43,6 +52,9 @@ async def test_get_user_by_id(user_repo, mock_session):
 
 @pytest.mark.asyncio
 async def test_get_user_by_name(user_repo, mock_session):
+    """
+    Перевіряє правильність отримання користувача за іменем користувача (username).
+    """
     mock_user = User(
         id=1,
         username="some_user",
@@ -65,6 +77,9 @@ async def test_get_user_by_name(user_repo, mock_session):
 
 @pytest.mark.asyncio
 async def test_get_user_by_email(user_repo, mock_session):
+    """
+    Перевіряє правильність отримання користувача за електронною поштою.
+    """
     mock_user = User(
         id=1,
         username="some_user",
@@ -87,6 +102,9 @@ async def test_get_user_by_email(user_repo, mock_session):
 
 @pytest.mark.asyncio
 async def test_create_user(user_repo, mock_session):
+    """
+    Перевіряє створення нового користувача на основі переданих даних.
+    """
     user_data = UserCreate(
         username="test_user", email="test@gamil.com", password="test_pass"
     )
@@ -106,6 +124,9 @@ async def test_create_user(user_repo, mock_session):
 
 @pytest.mark.asyncio
 async def test_update_user(user_repo, mock_session):
+    """
+    Перевіряє оновлення аватарки користувача за його електронною поштою.
+    """
     email = "some_user@gmail.com"
     new_avatar_url = "new_ava"
 
@@ -133,6 +154,9 @@ async def test_update_user(user_repo, mock_session):
 
 @pytest.mark.asyncio
 async def test_confirmed_email(user_repo, mock_session):
+    """
+    Перевіряє підтвердження електронної пошти користувача.
+    """
     email = "test_email"
     existing_user = User(
         id=1,
@@ -151,8 +175,12 @@ async def test_confirmed_email(user_repo, mock_session):
     assert existing_user.confirmed is True 
     mock_session.commit.assert_awaited_once()
 
+
 @pytest.mark.asyncio
 async def test_add_reset_password_token_url(user_repo, mock_session):
+    """
+    Перевіряє додавання токена для скидання пароля та терміну його дії.
+    """
     email = "user@example.com"
     password_reset_token = "random_reset_token"
     password_reset_token_expiry = datetime(2025, 12, 31, 23, 59, 59)
@@ -184,8 +212,12 @@ async def test_add_reset_password_token_url(user_repo, mock_session):
     mock_session.commit.assert_awaited_once()
     mock_session.refresh.assert_awaited_once_with(updated_user)
 
+
 @pytest.mark.asyncio
 async def test_reset_password(user_repo, mock_session):
+    """
+    Перевіряє функціонал скидання пароля для користувача.
+    """
     email = "user@example.com"
     new_password = "new_secure_password"
     
@@ -209,3 +241,4 @@ async def test_reset_password(user_repo, mock_session):
     assert updated_user.hashed_password == new_password
     mock_session.commit.assert_awaited_once()
     mock_session.refresh.assert_awaited_once_with(updated_user)
+

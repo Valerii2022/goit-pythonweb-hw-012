@@ -9,6 +9,12 @@ user_data = {"username": "agent007", "email": "agent007@gmail.com", "password": 
 
 
 def test_signup(client, monkeypatch):
+    """
+    Тестує процес реєстрації користувача:
+    - успішну реєстрацію,
+    - валідацію некоректних даних,
+    - дублювання користувача за email або ім'ям.
+    """
     mock_send_email = Mock()
     monkeypatch.setattr("src.api.auth.send_email", mock_send_email)
 
@@ -27,7 +33,6 @@ def test_signup(client, monkeypatch):
 
     invalid_user_data = {**user_data, "email": "invalid-email"}
     response = client.post("api/auth/register", json=invalid_user_data)
-
     assert response.status_code == 409, response.text
     data = response.json()
     assert "detail" in data
@@ -52,6 +57,9 @@ def test_signup(client, monkeypatch):
 
 
 def test_repeat_signup(client, monkeypatch):
+    """
+    Перевіряє, що спроба повторної реєстрації вже існуючого користувача викликає помилку.
+    """
     mock_send_email = Mock()
     monkeypatch.setattr("src.api.auth.send_email", mock_send_email)
 
@@ -62,14 +70,24 @@ def test_repeat_signup(client, monkeypatch):
     data = response.json()
     assert data["detail"] == "Користувач з таким email вже існує"
 
+
 def test_not_confirmed_login(client):
+    """
+    Перевіряє, що користувач з непідтвердженою електронною адресою не може увійти в систему.
+    """
     response = client.post("api/auth/login", data={"username": user_data.get("username"), "password": user_data.get("password")})
     assert response.status_code == 401, response.text
     data = response.json()
     assert data["detail"] == "Електронна адреса не підтверджена"
 
+
 @pytest.mark.asyncio
 async def test_login(client):
+    """
+    Тестує логін:
+    - для підтвердженого та непідтвердженого користувача,
+    - з некоректним паролем або логіном.
+    """
     async with TestingSessionLocal() as session:
         current_user = await session.execute(select(User).where(User.email == user_data.get("email")))
         current_user = current_user.scalar_one_or_none()
@@ -101,6 +119,10 @@ async def test_login(client):
 
 
 def test_validation_error_login(client):
+    """
+    Перевіряє валідацію при спробі входу:
+    - відсутній пароль або логін.
+    """
     response = client.post("api/auth/login", data={"password": user_data.get("password")})
     assert response.status_code == 422, response.text
     data = response.json()
@@ -111,7 +133,13 @@ def test_validation_error_login(client):
     data = response.json()
     assert "detail" in data
 
+
 def test_confirmed_email(client):
+    """
+    Перевіряє підтвердження електронної адреси:
+    - з валідним токеном,
+    - з невалідним або повторним токеном.
+    """
     token = "some_valid_token"
     response = client.get(f"api/auth/confirmed_email/{token}")
     
@@ -130,14 +158,20 @@ def test_confirmed_email(client):
     
     assert response.status_code == 422, response.text
     data = response.json()
-    assert data["detail"] == "Неправильний токен для перевірки електронної пошти"  
+    assert data["detail"] == "Неправильний токен для перевірки електронної пошти"
 
     response = client.get(f"api/auth/confirmed_email/{token}")
     assert response.status_code == 422, response.text
     data = response.json()
     assert data["detail"] == "Неправильний токен для перевірки електронної пошти"
 
+
 def test_password_reset_request(client, monkeypatch):
+    """
+    Перевіряє надсилання запиту на скидання пароля:
+    - для існуючого користувача,
+    - для неіснуючого користувача.
+    """
     mock_send_reset_password_email = Mock()
     monkeypatch.setattr("src.api.auth.send_reset_password_email", mock_send_reset_password_email)
 
@@ -151,7 +185,13 @@ def test_password_reset_request(client, monkeypatch):
     data = response.json()
     assert data["detail"] == "Користувача з такою електронною поштою не знайдено."
 
+
 def test_password_reset(client, monkeypatch):
+    """
+    Перевіряє процес скидання пароля:
+    - з валідним токеном,
+    - з простроченим токеном.
+    """
     mock_reset_password = AsyncMock()
     monkeypatch.setattr("src.api.auth.UserService.reset_password", mock_reset_password)
 
@@ -182,7 +222,11 @@ def test_password_reset(client, monkeypatch):
     data = response.json()
     assert data["detail"] == "Час дії token вийшов."
 
+
 def test_password_reset_nonexistent_user(client):
+    """
+    Перевіряє скидання пароля для неіснуючого користувача.
+    """
     reset_data = {
         "email": "nonexistent_user@example.com",
         "token": "valid_reset_token",
@@ -192,4 +236,3 @@ def test_password_reset_nonexistent_user(client):
     assert response.status_code == 404, response.text
     data = response.json()
     assert data["detail"] == "Користувача з такою електронною поштою не знайдено."
-

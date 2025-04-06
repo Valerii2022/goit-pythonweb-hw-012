@@ -10,17 +10,33 @@ from datetime import datetime, date
 
 @pytest.fixture
 def mock_session():
+    """
+    Фікстур для створення мок-сесії бази даних.
+
+    Створює об'єкт AsyncMock, що імітує поведінку асинхронної сесії SQLAlchemy,
+    що використовується для тестування методів репозиторіїв без реального підключення до бази даних.
+    """
     mock_session = AsyncMock(spec=AsyncSession)
     return mock_session
 
 
 @pytest.fixture
 def contacts_repo(mock_session):
+    """
+    Фікстур для створення репозиторія контактів.
+
+    Створює об'єкт ContactRepository, використовуючи мок-сесію для імітації роботи з базою даних.
+    """
     return ContactRepository(mock_session)
 
 
 @pytest.fixture
 def user():
+    """
+    Фікстур для створення тестового користувача.
+
+    Створює користувача з тестовими даними, включаючи контактну інформацію, пароль та роль.
+    """
     user = User(
         id=1,
         username="jo",
@@ -37,6 +53,11 @@ def user():
 
 @pytest.mark.asyncio
 async def test_get_contacts(contacts_repo, mock_session, user):
+    """
+    Тест для отримання всіх контактів користувача.
+
+    Перевіряє, чи правильно повертається список контактів користувача з бази даних.
+    """
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [
         Contact(
@@ -62,6 +83,11 @@ async def test_get_contacts(contacts_repo, mock_session, user):
 
 @pytest.mark.asyncio
 async def test_get_contacts_id(contacts_repo, mock_session, user):
+    """
+    Тест для отримання контакту за його ID.
+
+    Перевіряє, чи правильно повертається контакт за його унікальним ідентифікатором.
+    """
     mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = Contact(
         id=1,
@@ -83,6 +109,11 @@ async def test_get_contacts_id(contacts_repo, mock_session, user):
 
 @pytest.mark.asyncio
 async def test_create_contact(contacts_repo, mock_session, user):
+    """
+    Тест для створення нового контакту.
+
+    Перевіряє, чи правильно створюється контакт у базі даних.
+    """
     contact_data = ContactBase(
         first_name="Pat",
         last_name="Roney",
@@ -104,9 +135,13 @@ async def test_create_contact(contacts_repo, mock_session, user):
     mock_session.commit.assert_awaited_once()
 
 
-
 @pytest.mark.asyncio
 async def test_update_contact(contacts_repo, mock_session, user):
+    """
+    Тест для оновлення існуючого контакту.
+
+    Перевіряє, чи правильно оновлюється контакт у базі даних.
+    """
     contact_data = ContactUpdate(first_name="Austin")
     existing_contact = Contact(
         id=1,
@@ -133,6 +168,11 @@ async def test_update_contact(contacts_repo, mock_session, user):
 
 @pytest.mark.asyncio
 async def test_remove_contact(contacts_repo, mock_session, user):
+    """
+    Тест для видалення контакту.
+
+    Перевіряє, чи правильно видаляється контакт з бази даних.
+    """
     existing_contact = Contact(
         id=1,
         first_name="Alex",
@@ -157,6 +197,11 @@ async def test_remove_contact(contacts_repo, mock_session, user):
 
 @pytest.mark.asyncio
 async def test_search_contact_atr(contacts_repo, mock_session, user):
+    """
+    Тест для пошуку контактів за атрибутами.
+
+    Перевіряє, чи правильно виконується пошук контактів за певними критеріями, такими як прізвище, ім'я та email.
+    """
     mock_result = MagicMock()
     mock_result.scalars.return_value.all.return_value = [
         Contact(
@@ -165,7 +210,7 @@ async def test_search_contact_atr(contacts_repo, mock_session, user):
             last_name="Roney",
             email="alex@example.com",
             phone="7107102255",
-            birth_date=date(1988, 10, 10),
+            birth_date="1988-10-10",
             user_id=1,
         ),
         Contact(
@@ -174,7 +219,7 @@ async def test_search_contact_atr(contacts_repo, mock_session, user):
             last_name="Roney",
             email="jo@example.com",
             phone="111556699",
-            birth_date=date(1988, 10, 10),
+            birth_date="1988-10-10",
             user_id=2,
         ),
     ]
@@ -192,6 +237,11 @@ async def test_search_contact_atr(contacts_repo, mock_session, user):
 
 @pytest.mark.asyncio
 async def test_get_week_birthdays(contacts_repo, mock_session, user):
+    """
+    Тест для отримання контактів з днями народження на найближчий тиждень.
+
+    Перевіряє, чи правильно вибираються контакти з найближчими днями народження в проміжку тижня.
+    """
     start_date = date.today()
     end_date = start_date + timedelta(days=7)
     mock_result = MagicMock()
@@ -224,4 +274,3 @@ async def test_get_week_birthdays(contacts_repo, mock_session, user):
     assert result[1].birth_date >= start_date and result[1].birth_date <= end_date
 
     mock_session.execute.assert_called_once()
-
