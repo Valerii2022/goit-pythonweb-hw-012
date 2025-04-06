@@ -1,4 +1,5 @@
 aiosmtplib==3.0.2
+aiosqlite==0.21.0
 alabaster==1.0.0
 alembic==1.15.1
 annotated-types==0.7.0
